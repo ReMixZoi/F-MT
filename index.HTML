@@ -360,16 +360,69 @@
             position: fixed;
             top: 20px;
             right: 20px;
-            background: rgba(255, 255, 255, 0.9);
+            background: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(10px);
-            padding: 20px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            padding: 20px 20px 45px 20px;
+            /* เพิ่ม padding ด้านล่างเผื่อที่ให้แถบเลื่อน */
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
             border-radius: 16px;
             z-index: 1000;
             width: 220px;
-            border: 1px solid var(--border);
-            cursor: move;
+            border: 1px solid white;
             user-select: none;
+        }
+
+        .drag-handle-bar {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 36px;
+            background: #f8fafc;
+            border-top: 1px solid #e2e8f0;
+            border-radius: 0 0 16px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #94a3b8;
+            cursor: move;
+            font-size: 24px;
+            line-height: 0;
+            padding-bottom: 6px;
+            /* ดันจุดขึ้นมาหน่อย */
+            transition: all 0.2s;
+            letter-spacing: 6px;
+        }
+
+        .drag-handle-bar:hover {
+            background: #f1f5f9;
+            color: var(--primary);
+        }
+
+        .drag-handle-bar {
+            position: absolute;
+            /* Use absolute positioning for perfect bottom alignment */
+            bottom: 0;
+            left: 0;
+            right: 0;
+            width: 100%;
+            height: 24px;
+            background: #e2e8f0;
+            cursor: move;
+            font-size: 1.5rem;
+            /* Improved dot size */
+            letter-spacing: 4px;
+            /* Improved dot spacing */
+            color: #94a3b8;
+            /* Dot color */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-top: 1px solid #e2e8f0;
+            border-radius: 0 0 16px 16px;
+            line-height: 0;
+            padding-bottom: 4px;
+            /* Adjust vertical alignment of dots */
         }
 
         .controls button,
@@ -597,6 +650,7 @@
         <button class="btn btn-outline" onclick="window.print()">
             <span>🖨️ พิมพ์หน้าปัจจุบัน</span>
         </button>
+        <div class="drag-handle-bar">• • •</div>
     </div>
 
     <div id="print-area"></div>
@@ -1345,15 +1399,15 @@
                                 </tr>
                                 <tr style="height: 25px;">
                                     <td style="border: 1px solid #000; border-left: none; text-align: center; font-size: 0.65rem;">ชื่อ (ตัวบรรจง)</td>
-                                    <td style="border: 1px solid #000;"></td>
-                                    <td style="border: 1px solid #000;"></td>
-                                    <td style="border: 1px solid #000; border-right: none;"></td>
+                                    <td style="border: 1px solid #000; padding: 2px;"><span contenteditable="true" class="sig-name" style="display: block; outline: none; text-align: center;"></span></td>
+                                    <td style="border: 1px solid #000; padding: 2px;"><span contenteditable="true" class="sig-name" style="display: block; outline: none; text-align: center;"></span></td>
+                                    <td style="border: 1px solid #000; border-right: none; padding: 2px;"><span contenteditable="true" class="sig-name" style="display: block; outline: none; text-align: center;"></span></td>
                                 </tr>
                                 <tr style="height: 25px;">
                                     <td style="border: 1px solid #000; border-left: none; border-bottom: none; text-align: center;">วันที่</td>
-                                    <td style="border: 1px solid #000; border-bottom: none; text-align: center;">___/___/______</td>
-                                    <td style="border: 1px solid #000; border-bottom: none; text-align: center;">___/___/______</td>
-                                    <td style="border: 1px solid #000; border-right: none; border-bottom: none; text-align: center;">___/___/______</td>
+                                    <td style="border: 1px solid #000; border-bottom: none; text-align: center; padding: 2px;"><input type="date" class="date-input" style="width: 100%; border: none; text-align: center; font-size: 0.65rem;"></td>
+                                    <td style="border: 1px solid #000; border-bottom: none; text-align: center; padding: 2px;"><input type="date" class="date-input" style="width: 100%; border: none; text-align: center; font-size: 0.65rem;"></td>
+                                    <td style="border: 1px solid #000; border-right: none; border-bottom: none; text-align: center; padding: 2px;"><input type="date" class="date-input" style="width: 100%; border: none; text-align: center; font-size: 0.65rem;"></td>
                                 </tr>
                             </table>
                         </div>
@@ -1679,7 +1733,7 @@
         let dragOffsetY = 0;
 
         controls.addEventListener('mousedown', (e) => {
-            if (e.target.closest('button') || e.target.closest('input')) return;
+            if (!e.target.closest('.drag-handle-bar')) return;
 
             isDraggingControls = true;
 
@@ -1699,7 +1753,6 @@
             const x = e.clientX - dragOffsetX;
             const y = e.clientY - dragOffsetY;
 
-            // Optional: Boundary checks to keep it on screen
             const maxX = window.innerWidth - controls.offsetWidth;
             const maxY = window.innerHeight - controls.offsetHeight;
 
@@ -1713,7 +1766,7 @@
 
         // Touch support for mobile
         controls.addEventListener('touchstart', (e) => {
-            if (e.target.closest('button') || e.target.closest('input')) return;
+            if (!e.target.closest('.drag-handle-bar')) return;
 
             isDraggingControls = true;
             const touch = e.touches[0];
@@ -1728,9 +1781,12 @@
 
         document.addEventListener('touchmove', (e) => {
             if (!isDraggingControls) return;
-            e.preventDefault(); // Prevent scrolling
-
             const touch = e.touches[0];
+
+            // Check if touch is on handle to decide prevention strictly?
+            // Actually, keep preventDefault only if dragging to avoid scrolling while moving the modal
+            if (e.cancelable) e.preventDefault();
+
             const x = touch.clientX - dragOffsetX;
             const y = touch.clientY - dragOffsetY;
 
