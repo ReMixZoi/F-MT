@@ -1,0 +1,1578 @@
+﻿��<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="description" content="แอปบันทึกการใช้งาน YouTube และ TikTok พร้อมส่งข้อมูลไป Google Sheets">
+    <meta name="theme-color" content="#0f0f1a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>📱 App Usage Tracker</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+Thai:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* ===== CSS Reset & Variables ===== */
+        *, *::before, *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-primary: #0f0f1a;
+            --bg-secondary: #1a1a2e;
+            --bg-card: #16213e;
+            --bg-card-hover: #1a2744;
+            --bg-input: #0d1b3a;
+            --text-primary: #e8e8f0;
+            --text-secondary: #8b8ba7;
+            --text-muted: #5a5a7a;
+            --accent-youtube: #ff0033;
+            --accent-youtube-glow: rgba(255, 0, 51, 0.3);
+            --accent-tiktok: #00f2ea;
+            --accent-tiktok-glow: rgba(0, 242, 234, 0.3);
+            --accent-purple: #7c3aed;
+            --accent-purple-glow: rgba(124, 58, 237, 0.25);
+            --accent-success: #10b981;
+            --accent-success-glow: rgba(16, 185, 129, 0.3);
+            --accent-warning: #f59e0b;
+            --accent-danger: #ef4444;
+            --border-color: rgba(255, 255, 255, 0.06);
+            --border-active: rgba(124, 58, 237, 0.5);
+            --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
+            --shadow-md: 0 4px 20px rgba(0, 0, 0, 0.4);
+            --shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.5);
+            --shadow-glow: 0 0 30px rgba(124, 58, 237, 0.15);
+            --radius-sm: 10px;
+            --radius-md: 16px;
+            --radius-lg: 24px;
+            --radius-full: 9999px;
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        html {
+            font-size: 16px;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: 'Noto Sans Thai', 'Inter', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* ===== Background Gradient Orbs ===== */
+        body::before {
+            content: '';
+            position: fixed;
+            top: -30%;
+            left: -20%;
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(124, 58, 237, 0.08) 0%, transparent 70%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        body::after {
+            content: '';
+            position: fixed;
+            bottom: -30%;
+            right: -20%;
+            width: 500px;
+            height: 500px;
+            background: radial-gradient(circle, rgba(0, 242, 234, 0.06) 0%, transparent 70%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* ===== App Container ===== */
+        .app-container {
+            max-width: 480px;
+            margin: 0 auto;
+            padding: 0 16px;
+            padding-bottom: 100px;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* ===== Header ===== */
+        .header {
+            padding: 20px 0 16px;
+            text-align: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: linear-gradient(to bottom, var(--bg-primary) 60%, transparent);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+        }
+
+        .header-title {
+            font-size: 1.6rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #7c3aed, #a78bfa, #00f2ea);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: -0.5px;
+        }
+
+        .header-subtitle {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-top: 4px;
+            font-weight: 400;
+        }
+
+        .header-user {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 10px;
+            padding: 6px 16px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-full);
+            font-size: 0.78rem;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .header-user:hover {
+            border-color: var(--accent-purple);
+            color: var(--text-primary);
+        }
+
+        .header-user .user-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--accent-success);
+            box-shadow: 0 0 8px var(--accent-success-glow);
+        }
+
+        /* ===== Pages ===== */
+        .page {
+            display: none;
+            animation: pageIn 0.4s ease;
+        }
+
+        .page.active {
+            display: block;
+        }
+
+        @keyframes pageIn {
+            from { opacity: 0; transform: translateY(12px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ===== Stat Cards Row ===== */
+        .stats-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 16px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+            transition: var(--transition);
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            border-radius: 3px 3px 0 0;
+        }
+
+        .stat-card.youtube::before {
+            background: linear-gradient(90deg, var(--accent-youtube), #ff6b6b);
+        }
+
+        .stat-card.tiktok::before {
+            background: linear-gradient(90deg, var(--accent-tiktok), #69dbff);
+        }
+
+        .stat-card .stat-icon {
+            font-size: 1.8rem;
+            margin-bottom: 6px;
+        }
+
+        .stat-card .stat-value {
+            font-size: 1.8rem;
+            font-weight: 800;
+            color: var(--text-primary);
+        }
+
+        .stat-card .stat-label {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-top: 2px;
+        }
+
+        /* ===== Section Title ===== */
+        .section-title {
+            font-size: 1rem;
+            font-weight: 700;
+            margin-bottom: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-primary);
+        }
+
+        .section-title .title-line {
+            flex: 1;
+            height: 1px;
+            background: linear-gradient(90deg, var(--border-color), transparent);
+        }
+
+        /* ===== App Selector ===== */
+        .app-selector {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .app-btn {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 20px 16px;
+            border: 2px solid var(--border-color);
+            border-radius: var(--radius-md);
+            background: var(--bg-card);
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: var(--transition);
+            font-family: inherit;
+            font-size: 0.85rem;
+            font-weight: 600;
+            overflow: hidden;
+        }
+
+        .app-btn::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            opacity: 0;
+            transition: opacity 0.3s;
+            border-radius: inherit;
+        }
+
+        .app-btn .app-icon {
+            font-size: 2.2rem;
+            z-index: 1;
+            position: relative;
+        }
+
+        .app-btn span {
+            z-index: 1;
+            position: relative;
+        }
+
+        .app-btn.youtube-btn::before {
+            background: linear-gradient(135deg, rgba(255, 0, 51, 0.12), rgba(255, 107, 107, 0.06));
+        }
+
+        .app-btn.youtube-btn.active {
+            border-color: var(--accent-youtube);
+            color: var(--accent-youtube);
+            box-shadow: 0 0 30px var(--accent-youtube-glow), inset 0 0 30px rgba(255, 0, 51, 0.05);
+        }
+
+        .app-btn.youtube-btn.active::before { opacity: 1; }
+
+        .app-btn.tiktok-btn::before {
+            background: linear-gradient(135deg, rgba(0, 242, 234, 0.12), rgba(105, 219, 255, 0.06));
+        }
+
+        .app-btn.tiktok-btn.active {
+            border-color: var(--accent-tiktok);
+            color: var(--accent-tiktok);
+            box-shadow: 0 0 30px var(--accent-tiktok-glow), inset 0 0 30px rgba(0, 242, 234, 0.05);
+        }
+
+        .app-btn.tiktok-btn.active::before { opacity: 1; }
+
+        .app-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .app-btn:active {
+            transform: scale(0.97);
+        }
+
+        /* ===== Form Card ===== */
+        .form-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: 24px 20px;
+            margin-bottom: 16px;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .form-group {
+            margin-bottom: 18px;
+        }
+
+        .form-group:last-child {
+            margin-bottom: 0;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 14px 16px;
+            background: var(--bg-input);
+            border: 1.5px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 0.95rem;
+            transition: var(--transition);
+            outline: none;
+        }
+
+        .form-input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .form-input:focus {
+            border-color: var(--accent-purple);
+            box-shadow: 0 0 0 3px var(--accent-purple-glow);
+        }
+
+        textarea.form-input {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        /* ===== Duration Quick Select ===== */
+        .duration-presets {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+            flex-wrap: wrap;
+        }
+
+        .duration-chip {
+            padding: 6px 14px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-full);
+            background: var(--bg-input);
+            color: var(--text-secondary);
+            font-size: 0.75rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: var(--transition);
+            font-family: inherit;
+        }
+
+        .duration-chip:hover {
+            border-color: var(--accent-purple);
+            color: var(--accent-purple);
+        }
+
+        .duration-chip.active {
+            background: var(--accent-purple);
+            border-color: var(--accent-purple);
+            color: white;
+        }
+
+        /* ===== Submit Button ===== */
+        .submit-btn {
+            width: 100%;
+            padding: 16px;
+            border: none;
+            border-radius: var(--radius-md);
+            background: linear-gradient(135deg, #7c3aed, #6d28d9);
+            color: white;
+            font-family: inherit;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: var(--transition);
+            position: relative;
+            overflow: hidden;
+            letter-spacing: 0.5px;
+        }
+
+        .submit-btn::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .submit-btn:hover::before {
+            opacity: 1;
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px var(--accent-purple-glow);
+        }
+
+        .submit-btn:active {
+            transform: scale(0.98);
+        }
+
+        .submit-btn span {
+            position: relative;
+            z-index: 1;
+        }
+
+        .submit-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+            box-shadow: none !important;
+        }
+
+        .submit-btn.loading span {
+            visibility: hidden;
+        }
+
+        .submit-btn.loading::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 24px;
+            height: 24px;
+            margin: -12px 0 0 -12px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            z-index: 2;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* ===== History List ===== */
+        .history-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .history-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 14px;
+            padding: 16px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            transition: var(--transition);
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(-10px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        .history-item:hover {
+            border-color: var(--border-active);
+            background: var(--bg-card-hover);
+        }
+
+        .history-item .item-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.4rem;
+            flex-shrink: 0;
+        }
+
+        .history-item .item-icon.youtube {
+            background: rgba(255, 0, 51, 0.12);
+        }
+
+        .history-item .item-icon.tiktok {
+            background: rgba(0, 242, 234, 0.12);
+        }
+
+        .history-item .item-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .history-item .item-content {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .history-item .item-meta {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 4px;
+            font-size: 0.72rem;
+            color: var(--text-muted);
+        }
+
+        .history-item .item-duration {
+            padding: 3px 10px;
+            border-radius: var(--radius-full);
+            font-size: 0.7rem;
+            font-weight: 600;
+            flex-shrink: 0;
+        }
+
+        .history-item .item-duration.youtube {
+            background: rgba(255, 0, 51, 0.12);
+            color: var(--accent-youtube);
+        }
+
+        .history-item .item-duration.tiktok {
+            background: rgba(0, 242, 234, 0.12);
+            color: var(--accent-tiktok);
+        }
+
+        .history-item .item-status {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.65rem;
+            flex-shrink: 0;
+            align-self: center;
+        }
+
+        .item-status.synced {
+            background: rgba(16, 185, 129, 0.15);
+            color: var(--accent-success);
+        }
+
+        .item-status.pending {
+            background: rgba(245, 158, 11, 0.15);
+            color: var(--accent-warning);
+        }
+
+        .item-status.failed {
+            background: rgba(239, 68, 68, 0.15);
+            color: var(--accent-danger);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 48px 20px;
+            color: var(--text-muted);
+        }
+
+        .empty-state .empty-icon {
+            font-size: 3rem;
+            margin-bottom: 12px;
+            opacity: 0.5;
+        }
+
+        .empty-state .empty-text {
+            font-size: 0.9rem;
+        }
+
+        /* ===== Settings Page ===== */
+        .settings-section {
+            margin-bottom: 24px;
+        }
+
+        .settings-section-title {
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            margin-bottom: 12px;
+            padding-left: 4px;
+        }
+
+        .settings-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            overflow: hidden;
+        }
+
+        .settings-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 18px;
+            border-bottom: 1px solid var(--border-color);
+            transition: var(--transition);
+        }
+
+        .settings-item:last-child {
+            border-bottom: none;
+        }
+
+        .settings-item:hover {
+            background: var(--bg-card-hover);
+        }
+
+        .settings-item .setting-left {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .settings-item .setting-icon {
+            width: 38px;
+            height: 38px;
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+            background: var(--bg-input);
+        }
+
+        .settings-item .setting-label {
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .settings-item .setting-desc {
+            font-size: 0.72rem;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+
+        .settings-item .setting-value {
+            font-size: 0.82rem;
+            color: var(--text-muted);
+            max-width: 140px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .settings-item input.inline-input {
+            background: var(--bg-input);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            padding: 8px 12px;
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 0.85rem;
+            width: 160px;
+            text-align: right;
+            outline: none;
+            transition: var(--transition);
+        }
+
+        .settings-item input.inline-input:focus {
+            border-color: var(--accent-purple);
+            box-shadow: 0 0 0 2px var(--accent-purple-glow);
+        }
+
+        .save-settings-btn {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: var(--radius-md);
+            background: linear-gradient(135deg, var(--accent-success), #059669);
+            color: white;
+            font-family: inherit;
+            font-size: 0.95rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: var(--transition);
+            margin-top: 16px;
+        }
+
+        .save-settings-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px var(--accent-success-glow);
+        }
+
+        .save-settings-btn:active {
+            transform: scale(0.98);
+        }
+
+        .danger-btn {
+            width: 100%;
+            padding: 14px;
+            border: 1.5px solid rgba(239, 68, 68, 0.3);
+            border-radius: var(--radius-md);
+            background: rgba(239, 68, 68, 0.08);
+            color: var(--accent-danger);
+            font-family: inherit;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .danger-btn:hover {
+            background: rgba(239, 68, 68, 0.15);
+            border-color: rgba(239, 68, 68, 0.5);
+        }
+
+        /* ===== Bottom Navigation ===== */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            background: rgba(15, 15, 26, 0.85);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border-top: 1px solid var(--border-color);
+            padding: 8px 0;
+            padding-bottom: max(8px, env(safe-area-inset-bottom));
+        }
+
+        .nav-items {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            max-width: 480px;
+            margin: 0 auto;
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            padding: 8px 16px;
+            border: none;
+            background: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: var(--transition);
+            font-family: inherit;
+            font-size: 0.65rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-radius: var(--radius-sm);
+            position: relative;
+        }
+
+        .nav-item .nav-icon {
+            font-size: 1.4rem;
+            transition: var(--transition);
+        }
+
+        .nav-item.active {
+            color: var(--accent-purple);
+        }
+
+        .nav-item.active .nav-icon {
+            transform: scale(1.1);
+        }
+
+        .nav-item.active::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 20px;
+            height: 3px;
+            border-radius: 0 0 3px 3px;
+            background: var(--accent-purple);
+        }
+
+        .nav-item:active {
+            transform: scale(0.92);
+        }
+
+        /* ===== Toast Notification ===== */
+        .toast {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-120px);
+            z-index: 9999;
+            padding: 14px 24px;
+            border-radius: var(--radius-md);
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: white;
+            box-shadow: var(--shadow-lg);
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            max-width: 90%;
+            text-align: center;
+            font-family: 'Noto Sans Thai', 'Inter', sans-serif;
+        }
+
+        .toast.show {
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .toast.success {
+            background: linear-gradient(135deg, #059669, #10b981);
+        }
+
+        .toast.error {
+            background: linear-gradient(135deg, #dc2626, #ef4444);
+        }
+
+        .toast.info {
+            background: linear-gradient(135deg, #6d28d9, #7c3aed);
+        }
+
+        /* ===== Modal ===== */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(6px);
+            z-index: 5000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            animation: fadeIn 0.2s ease;
+        }
+
+        .modal-overlay.show {
+            display: flex;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal-content {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: 28px 24px;
+            max-width: 360px;
+            width: 100%;
+            text-align: center;
+            animation: modalIn 0.3s ease;
+        }
+
+        @keyframes modalIn {
+            from { opacity: 0; transform: scale(0.92); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        .modal-icon {
+            font-size: 2.5rem;
+            margin-bottom: 12px;
+        }
+
+        .modal-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .modal-desc {
+            font-size: 0.82rem;
+            color: var(--text-secondary);
+            margin-bottom: 20px;
+            line-height: 1.5;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .modal-btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-family: inherit;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .modal-btn.cancel {
+            background: var(--bg-card);
+            color: var(--text-secondary);
+            border: 1px solid var(--border-color);
+        }
+
+        .modal-btn.confirm {
+            background: var(--accent-danger);
+            color: white;
+        }
+
+        .modal-btn:active {
+            transform: scale(0.96);
+        }
+
+        /* ===== Scrollbar ===== */
+        ::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--text-muted);
+            border-radius: 4px;
+        }
+
+        /* ===== Utility ===== */
+        .mt-8 { margin-top: 8px; }
+        .mt-16 { margin-top: 16px; }
+        .mt-24 { margin-top: 24px; }
+        .mb-8 { margin-bottom: 8px; }
+        .text-center { text-align: center; }
+        .text-muted { color: var(--text-muted); }
+        .text-sm { font-size: 0.78rem; }
+
+        /* ===== Other Apps ===== */
+        .other-apps-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .other-app-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 14px 8px;
+            border: 2px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            background: var(--bg-card);
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: var(--transition);
+            font-family: inherit;
+            font-size: 0.72rem;
+            font-weight: 600;
+        }
+
+        .other-app-btn .app-icon {
+            font-size: 1.4rem;
+        }
+
+        .other-app-btn.active {
+            border-color: var(--accent-purple);
+            color: var(--accent-purple);
+            background: rgba(124, 58, 237, 0.08);
+        }
+
+        .other-app-btn:hover {
+            border-color: var(--accent-purple);
+        }
+    </style>
+</head>
+<body>
+    <!-- Toast -->
+    <div class="toast" id="toast"></div>
+
+    <!-- Modal -->
+    <div class="modal-overlay" id="confirmModal">
+        <div class="modal-content">
+            <div class="modal-icon">🗑️</div>
+            <div class="modal-title">ลบประวัติทั้งหมด?</div>
+            <div class="modal-desc">ข้อมูลที่บันทึกไว้ในเครื่องจะถูกลบทั้งหมด<br>ข้อมูลใน Google Sheet จะยังคงอยู่</div>
+            <div class="modal-actions">
+                <button class="modal-btn cancel" onclick="closeModal()">ยกเลิก</button>
+                <button class="modal-btn confirm" onclick="confirmClearHistory()">ลบทั้งหมด</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="app-container">
+        <!-- Header -->
+        <header class="header">
+            <h1 class="header-title">📱 App Tracker</h1>
+            <p class="header-subtitle">บันทึกการใช้งาน YouTube & TikTok</p>
+            <div class="header-user" id="headerUser" onclick="navigateTo('settings')">
+                <span class="user-dot"></span>
+                <span id="headerUsername">ยังไม่ตั้งชื่อ</span>
+            </div>
+        </header>
+
+        <!-- ===== PAGE: Home (Record) ===== -->
+        <div class="page active" id="page-home">
+            <!-- Stats -->
+            <div class="stats-row">
+                <div class="stat-card youtube">
+                    <div class="stat-icon">▶️</div>
+                    <div class="stat-value" id="ytCount">0</div>
+                    <div class="stat-label">YouTube วันนี้</div>
+                </div>
+                <div class="stat-card tiktok">
+                    <div class="stat-icon">🎵</div>
+                    <div class="stat-value" id="ttCount">0</div>
+                    <div class="stat-label">TikTok วันนี้</div>
+                </div>
+            </div>
+
+            <!-- App Selector -->
+            <div class="section-title">
+                ▎เลือกแอป <span class="title-line"></span>
+            </div>
+
+            <div class="app-selector">
+                <button class="app-btn youtube-btn" id="btnYoutube" onclick="selectApp('YouTube')">
+                    <span class="app-icon">▶️</span>
+                    <span>YouTube</span>
+                </button>
+                <button class="app-btn tiktok-btn" id="btnTiktok" onclick="selectApp('TikTok')">
+                    <span class="app-icon">🎵</span>
+                    <span>TikTok</span>
+                </button>
+            </div>
+
+            <!-- Other Apps -->
+            <div class="section-title">
+                ▎แอปอื่นๆ <span class="title-line"></span>
+            </div>
+
+            <div class="other-apps-grid">
+                <button class="other-app-btn" onclick="selectApp('Facebook')">
+                    <span class="app-icon">📘</span>
+                    <span>Facebook</span>
+                </button>
+                <button class="other-app-btn" onclick="selectApp('Instagram')">
+                    <span class="app-icon">📷</span>
+                    <span>Instagram</span>
+                </button>
+                <button class="other-app-btn" onclick="selectApp('Twitter/X')">
+                    <span class="app-icon">𝕏</span>
+                    <span>Twitter/X</span>
+                </button>
+                <button class="other-app-btn" onclick="selectApp('LINE')">
+                    <span class="app-icon">💬</span>
+                    <span>LINE</span>
+                </button>
+                <button class="other-app-btn" onclick="selectApp('Netflix')">
+                    <span class="app-icon">🎬</span>
+                    <span>Netflix</span>
+                </button>
+                <button class="other-app-btn" onclick="selectApp('อื่นๆ')">
+                    <span class="app-icon">📱</span>
+                    <span>อื่นๆ</span>
+                </button>
+            </div>
+
+            <!-- Record Form -->
+            <div class="form-card" id="recordForm" style="display:none;">
+                <div class="section-title mb-8">
+                    📝 บันทึกการใช้งาน <span id="selectedAppLabel"></span>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="contentInput">เนื้อหาที่ดู / สิ่งที่ทำ</label>
+                    <textarea class="form-input" id="contentInput" placeholder="เช่น ดูคลิปทำอาหาร, ดู MV เพลง..."></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="durationInput">ระยะเวลา (นาที)</label>
+                    <input type="number" class="form-input" id="durationInput" placeholder="เช่น 30" min="1">
+                    <div class="duration-presets">
+                        <button class="duration-chip" onclick="setDuration(5)">5 นาที</button>
+                        <button class="duration-chip" onclick="setDuration(15)">15 นาที</button>
+                        <button class="duration-chip" onclick="setDuration(30)">30 นาที</button>
+                        <button class="duration-chip" onclick="setDuration(60)">1 ชม.</button>
+                        <button class="duration-chip" onclick="setDuration(120)">2 ชม.</button>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <div class="form-row">
+                        <div>
+                            <label class="form-label" for="dateInput">วันที่</label>
+                            <input type="date" class="form-input" id="dateInput">
+                        </div>
+                        <div>
+                            <label class="form-label" for="timeInput">เวลา</label>
+                            <input type="time" class="form-input" id="timeInput">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="noteInput">หมายเหตุ (ไม่บังคับ)</label>
+                    <input type="text" class="form-input" id="noteInput" placeholder="หมายเหตุเพิ่มเติม...">
+                </div>
+
+                <button class="submit-btn" id="submitBtn" onclick="submitRecord()">
+                    <span>📤 บันทึก & ส่งไป Google Sheet</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- ===== PAGE: History ===== -->
+        <div class="page" id="page-history">
+            <div class="section-title">
+                📋 ประวัติการใช้งาน <span class="title-line"></span>
+            </div>
+            <div class="history-list" id="historyList">
+                <div class="empty-state">
+                    <div class="empty-icon">📭</div>
+                    <div class="empty-text">ยังไม่มีประวัติการใช้งาน</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== PAGE: Settings ===== -->
+        <div class="page" id="page-settings">
+            <div class="section-title">
+                ⚙️ ตั้งค่า <span class="title-line"></span>
+            </div>
+
+            <div class="settings-section">
+                <div class="settings-section-title">โปรไฟล์</div>
+                <div class="settings-card">
+                    <div class="settings-item">
+                        <div class="setting-left">
+                            <div class="setting-icon">👤</div>
+                            <div>
+                                <div class="setting-label">ชื่อผู้ใช้</div>
+                                <div class="setting-desc">ชื่อที่จะแสดงในข้อมูล</div>
+                            </div>
+                        </div>
+                        <input type="text" class="inline-input" id="usernameInput" placeholder="ใส่ชื่อ...">
+                    </div>
+                </div>
+            </div>
+
+            <div class="settings-section">
+                <div class="settings-section-title">การเชื่อมต่อ</div>
+                <div class="settings-card">
+                    <div class="settings-item" style="flex-direction: column; align-items: stretch; gap: 10px;">
+                        <div class="setting-left">
+                            <div class="setting-icon">📊</div>
+                            <div>
+                                <div class="setting-label">Google Sheet URL</div>
+                                <div class="setting-desc">วาง URL ของ Apps Script Web App</div>
+                            </div>
+                        </div>
+                        <input type="url" class="inline-input" id="sheetUrlInput" placeholder="https://script.google.com/macros/s/..." style="width: 100%; text-align: left;">
+                    </div>
+                </div>
+            </div>
+
+            <button class="save-settings-btn" onclick="saveSettings()">
+                💾 บันทึกการตั้งค่า
+            </button>
+
+            <div class="settings-section mt-24">
+                <div class="settings-section-title">ข้อมูล</div>
+                <div class="settings-card">
+                    <div class="settings-item">
+                        <div class="setting-left">
+                            <div class="setting-icon">📦</div>
+                            <div>
+                                <div class="setting-label">จำนวนรายการ</div>
+                            </div>
+                        </div>
+                        <span class="setting-value" id="totalRecords">0 รายการ</span>
+                    </div>
+                    <div class="settings-item">
+                        <div class="setting-left">
+                            <div class="setting-icon">☁️</div>
+                            <div>
+                                <div class="setting-label">ส่งสำเร็จ</div>
+                            </div>
+                        </div>
+                        <span class="setting-value" id="syncedRecords">0 รายการ</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="settings-section mt-16">
+                <button class="danger-btn" onclick="openClearModal()">🗑️ ลบประวัติทั้งหมด</button>
+            </div>
+
+            <div class="text-center text-muted text-sm mt-24">
+                App Usage Tracker v1.0<br>
+                สร้างเพื่อบันทึกการใช้งานแอปมือถือ
+            </div>
+        </div>
+    </div>
+
+    <!-- Bottom Navigation -->
+    <nav class="bottom-nav">
+        <div class="nav-items">
+            <button class="nav-item active" id="nav-home" onclick="navigateTo('home')">
+                <span class="nav-icon">🏠</span>
+                <span>บันทึก</span>
+            </button>
+            <button class="nav-item" id="nav-history" onclick="navigateTo('history')">
+                <span class="nav-icon">📋</span>
+                <span>ประวัติ</span>
+            </button>
+            <button class="nav-item" id="nav-settings" onclick="navigateTo('settings')">
+                <span class="nav-icon">⚙️</span>
+                <span>ตั้งค่า</span>
+            </button>
+        </div>
+    </nav>
+
+    <script>
+        // ===== State =====
+        let selectedApp = '';
+        let history = [];
+        let settings = {
+            username: '',
+            sheetUrl: ''
+        };
+
+        // ===== Init =====
+        document.addEventListener('DOMContentLoaded', () => {
+            loadSettings();
+            loadHistory();
+            updateStats();
+            setCurrentDateTime();
+        });
+
+        // ===== Navigation =====
+        function navigateTo(page) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            document.getElementById(`page-${page}`).classList.add('active');
+            document.getElementById(`nav-${page}`).classList.add('active');
+
+            if (page === 'history') renderHistory();
+            if (page === 'settings') loadSettingsUI();
+        }
+
+        // ===== App Selection =====
+        function selectApp(app) {
+            selectedApp = app;
+
+            // Reset main buttons
+            document.getElementById('btnYoutube').classList.remove('active');
+            document.getElementById('btnTiktok').classList.remove('active');
+            document.querySelectorAll('.other-app-btn').forEach(b => b.classList.remove('active'));
+
+            // Highlight selected
+            if (app === 'YouTube') {
+                document.getElementById('btnYoutube').classList.add('active');
+            } else if (app === 'TikTok') {
+                document.getElementById('btnTiktok').classList.add('active');
+            } else {
+                document.querySelectorAll('.other-app-btn').forEach(b => {
+                    if (b.querySelector('span:last-child').textContent === app) {
+                        b.classList.add('active');
+                    }
+                });
+            }
+
+            // Show form
+            document.getElementById('recordForm').style.display = 'block';
+            document.getElementById('selectedAppLabel').textContent = `- ${app}`;
+            document.getElementById('recordForm').scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+            // Reset datetime
+            setCurrentDateTime();
+        }
+
+        // ===== DateTime =====
+        function setCurrentDateTime() {
+            const now = new Date();
+            const dateStr = now.toISOString().split('T')[0];
+            const timeStr = now.toTimeString().split(' ')[0].substring(0, 5);
+            document.getElementById('dateInput').value = dateStr;
+            document.getElementById('timeInput').value = timeStr;
+        }
+
+        // ===== Duration Presets =====
+        function setDuration(mins) {
+            document.getElementById('durationInput').value = mins;
+            document.querySelectorAll('.duration-chip').forEach(c => c.classList.remove('active'));
+            event.target.classList.add('active');
+        }
+
+        // ===== Submit Record =====
+        async function submitRecord() {
+            const content = document.getElementById('contentInput').value.trim();
+            const duration = document.getElementById('durationInput').value;
+            const date = document.getElementById('dateInput').value;
+            const time = document.getElementById('timeInput').value;
+            const note = document.getElementById('noteInput').value.trim();
+
+            if (!selectedApp) {
+                showToast('กรุณาเลือกแอป', 'error');
+                return;
+            }
+            if (!content) {
+                showToast('กรุณาใส่เนื้อหาที่ดู', 'error');
+                return;
+            }
+            if (!duration) {
+                showToast('กรุณาใส่ระยะเวลา', 'error');
+                return;
+            }
+            if (!settings.username) {
+                showToast('กรุณาตั้งชื่อในหน้าตั้งค่าก่อน', 'error');
+                navigateTo('settings');
+                return;
+            }
+
+            const record = {
+                id: Date.now(),
+                username: settings.username,
+                app: selectedApp,
+                content: content,
+                duration: parseInt(duration),
+                date: date,
+                time: time,
+                note: note,
+                synced: false
+
+            };
+
+            // Save locally first
+            history.unshift(record);
+            saveHistory();
+
+            const btn = document.getElementById('submitBtn');
+            btn.classList.add('loading');
+            btn.disabled = true;
+
+            // Send to Google Sheet
+            if (settings.sheetUrl) {
+                try {
+                    const response = await fetch(settings.sheetUrl, {
+                        method: 'POST',
+                        mode: 'no-cors',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(record)
+                    });
+                    record.synced = true;
+                    saveHistory();
+                    showToast('✅ บันทึก & ส่งไป Google Sheet สำเร็จ!', 'success');
+                } catch (error) {
+                    console.error('Error sending to sheet:', error);
+                    showToast('⚠️ บันทึกแล้ว แต่ส่งไป Sheet ไม่สำเร็จ', 'error');
+                }
+            } else {
+                showToast('💾 บันทึกแล้ว (ยังไม่ได้ตั้ง Google Sheet URL)', 'info');
+            }
+
+            btn.classList.remove('loading');
+            btn.disabled = false;
+
+            // Reset form
+            document.getElementById('contentInput').value = '';
+            document.getElementById('durationInput').value = '';
+            document.getElementById('noteInput').value = '';
+            document.querySelectorAll('.duration-chip').forEach(c => c.classList.remove('active'));
+            setCurrentDateTime();
+
+            updateStats();
+        }
+
+        // ===== History =====
+        function renderHistory() {
+            const container = document.getElementById('historyList');
+            if (history.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon">📭</div>
+                        <div class="empty-text">ยังไม่มีประวัติการใช้งาน</div>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = history.map((item, index) => {
+                const appClass = item.app === 'YouTube' ? 'youtube' : item.app === 'TikTok' ? 'tiktok' : '';
+                const icon = getAppIcon(item.app);
+                const statusClass = item.synced ? 'synced' : 'pending';
+                const statusIcon = item.synced ? '✓' : '◷';
+
+                return `
+                    <div class="history-item" style="animation-delay: ${index * 0.05}s">
+                        <div class="item-icon ${appClass}" style="${!appClass ? 'background: rgba(124,58,237,0.12);' : ''}">
+                            ${icon}
+                        </div>
+                        <div class="item-info">
+                            <div class="item-content">${escapeHtml(item.content)}</div>
+                            <div class="item-meta">
+                                <span>${item.app}</span>
+                                <span>•</span>
+                                <span>${formatDate(item.date)} ${item.time}</span>
+                            </div>
+                        </div>
+                        <span class="item-duration ${appClass}" style="${!appClass ? 'background: rgba(124,58,237,0.12); color: var(--accent-purple);' : ''}">${item.duration} นาที</span>
+                        <div class="item-status ${statusClass}">${statusIcon}</div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function getAppIcon(app) {
+            const icons = {
+                'YouTube': '▶️',
+                'TikTok': '🎵',
+                'Facebook': '📘',
+                'Instagram': '📷',
+                'Twitter/X': '𝕏',
+                'LINE': '💬',
+                'Netflix': '🎬',
+                'อื่นๆ': '📱'
+            };
+            return icons[app] || '📱';
+        }
+
+        // ===== Stats =====
+        function updateStats() {
+            const today = new Date().toISOString().split('T')[0];
+            const todayRecords = history.filter(r => r.date === today);
+            const ytCount = todayRecords.filter(r => r.app === 'YouTube').length;
+            const ttCount = todayRecords.filter(r => r.app === 'TikTok').length;
+
+            document.getElementById('ytCount').textContent = ytCount;
+            document.getElementById('ttCount').textContent = ttCount;
+
+            // Update settings stats
+            document.getElementById('totalRecords').textContent = `${history.length} รายการ`;
+            document.getElementById('syncedRecords').textContent = `${history.filter(r => r.synced).length} รายการ`;
+        }
+
+        // ===== Settings =====
+        function loadSettings() {
+            const saved = localStorage.getItem('appTracker_settings');
+            if (saved) {
+                settings = JSON.parse(saved);
+            }
+            updateHeaderUser();
+        }
+
+        function loadSettingsUI() {
+            document.getElementById('usernameInput').value = settings.username || '';
+            document.getElementById('sheetUrlInput').value = settings.sheetUrl || '';
+            updateStats();
+        }
+
+        function saveSettings() {
+            settings.username = document.getElementById('usernameInput').value.trim();
+            settings.sheetUrl = document.getElementById('sheetUrlInput').value.trim();
+            localStorage.setItem('appTracker_settings', JSON.stringify(settings));
+            updateHeaderUser();
+            showToast('✅ บันทึกการตั้งค่าสำเร็จ!', 'success');
+        }
+
+        function updateHeaderUser() {
+            const el = document.getElementById('headerUsername');
+            el.textContent = settings.username || 'ยังไม่ตั้งชื่อ';
+        }
+
+        // ===== History Storage =====
+        function saveHistory() {
+            localStorage.setItem('appTracker_history', JSON.stringify(history));
+        }
+
+        function loadHistory() {
+            const saved = localStorage.getItem('appTracker_history');
+            if (saved) {
+                history = JSON.parse(saved);
+            }
+        }
+
+        // ===== Clear History =====
+        function openClearModal() {
+            document.getElementById('confirmModal').classList.add('show');
+        }
+
+        function closeModal() {
+            document.getElementById('confirmModal').classList.remove('show');
+        }
+
+        function confirmClearHistory() {
+            history = [];
+            saveHistory();
+            updateStats();
+            closeModal();
+            showToast('🗑️ ลบประวัติทั้งหมดแล้ว', 'info');
+        }
+
+        // ===== Toast =====
+        function showToast(message, type = 'info') {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = `toast ${type} show`;
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+
+        // ===== Utilities =====
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function formatDate(dateStr) {
+            if (!dateStr) return '';
+            const parts = dateStr.split('-');
+            return `${parts[2]}/${parts[1]}/${parts[0]}`;
+        }
+    </script>
+</body>
+</html>
+��2file:///c:/Code/HTML/index.html

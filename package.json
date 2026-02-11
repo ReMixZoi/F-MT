@@ -1,0 +1,26 @@
+{
+  "name": "app-tracker",
+  "version": "1.0.0",
+  "description": "App Usage Tracker - บันทึกการใช้งาน YouTube & TikTok",
+  "main": "index.html",
+  "scripts": {
+    "build": "copy index.html www\\index.html",
+    "cap:add": "npx cap add android",
+    "cap:copy": "npx cap copy android",
+    "cap:open": "npx cap open android",
+    "cap:build": "npx cap copy android && cd android && gradlew.bat assembleDebug",
+    "apk": "npm run build && npm run cap:copy && cd android && gradlew.bat assembleDebug"
+  },
+  "keywords": [
+    "app-tracker",
+    "youtube",
+    "tiktok"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@capacitor/android": "^8.0.2",
+    "@capacitor/cli": "^8.0.2",
+    "@capacitor/core": "^8.0.2"
+  }
+}
